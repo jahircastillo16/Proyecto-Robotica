@@ -6,23 +6,27 @@
 
 DHT11 dht11(4);
 // Definir credenciales de red
-//const char* ssid = "TP-LINK_6150";
-//const char* password = "69928956";
+const char* ssid = "TP-LINK_6150";
+const char* password = "69928956";
 //const char* ssid = "GITCE";      // SSID de tu red Wi-Fi
 //const char* password = "Tabaquismo123";  // Contraseña de tu red Wi-Fi
 //const char* ssid = "Infoplaza 464 UTP";
 //const char* password = "1nf0Pla464";
-const char* ssid = "POCO X3 Pro";
-const char* password = "HoliHolita";
+//const char* ssid = "POCO X3 Pro";
+//const char* password = "HoliHolita";
 
 int temperatura;
 int valor_bd = 0; // Variable para almacenar el valor de la base de datos
 // Pin del LED
 const int ledPin = 25; // Cambia esto al número del pin donde está conectado tu LED
+const int volS =12 ; // led indicador subir temperatura
+const int volB = 13; // led indicador bajar temperatura
 //definir funcion de envio ir
 IRsendRaw mySender;
 //valor booleano para evitar envio de senales dobles
 bool est=0;
+//controlador para enviar solo una senal de temperatura
+int estTem=0;
 
 
 
@@ -40,6 +44,8 @@ void setup() {
   Serial.print("IP Local: ");
   Serial.println(WiFi.localIP());
   pinMode(ledPin,OUTPUT);
+  pinMode(volS,OUTPUT);
+  pinMode(volB,OUTPUT);
 
 }
 
@@ -47,16 +53,42 @@ void loop() {
   #define RAW_DATA_LEN 200
   int temperatura = dht11.readTemperature();
   LecturaTH();
-  Serial.println("temperatura: ");
+  Serial.println("temperatura real: ");
   Serial.println(temperatura);
   Serial.println("");
   Serial.println();
   WiFi.status();
   Serial.println(WiFi.status());
   int valorExtraido = ObtenerValorDesdeBD();
+  int temperaturaMod = ObtenerTemperaturaMod();
+  Serial.print("Temperatura Modificada:");
+  Serial.println(temperaturaMod);
   Serial.print("Valor extraído: ");
   Serial.println(valorExtraido);
 
+
+
+//comparacion de la temperaturas real y la extraida de la base de datos
+   if (temperatura < temperaturaMod && est==1){
+    Serial.println("Subiendo temperatura");
+        digitalWrite(volS, HIGH);  
+    digitalWrite(volB, LOW); 
+    estTem=1;
+   }else if (temperatura > temperaturaMod && est==1){
+    Serial.println("Bajando temperatura");
+    digitalWrite(volS, LOW);  
+    digitalWrite(volB, HIGH); 
+    estTem=2;
+   }else if (temperatura = temperaturaMod && est==1){
+    Serial.println("Temperatura sincronizada");
+    digitalWrite(volS, HIGH);  
+    digitalWrite(volB, HIGH);
+    estTem=0;
+
+   }else{
+    digitalWrite(volS, LOW);  
+    digitalWrite(volB, LOW);    
+   }
   
 
 
@@ -212,6 +244,42 @@ int ObtenerValorDesdeBD() {
 
     // URL del archivo PHP en el servidor que procesa la solicitud GET
     String url = "http://aires-acondicionados.000webhostapp.com/EspGet.php";
+
+    http.begin(url);
+
+    int codigo_respuesta = http.GET();
+
+    if (codigo_respuesta > 0) {
+      if (codigo_respuesta == HTTP_CODE_OK) {
+        String respuesta = http.getString();
+        Serial.print("Respuesta del servidor: ");
+        Serial.println(respuesta);
+        valor = respuesta.toInt();
+      } else {
+        Serial.print("Error en la solicitud GET. Código de respuesta HTTP: ");
+        Serial.println(codigo_respuesta);
+      }
+    } else {
+      Serial.println("Error en la conexión con el servidor");
+    }
+
+    http.end();  // Liberar recursos
+  } else {
+    Serial.println("Error en la conexión WiFi");
+  }
+
+  return valor;
+}
+
+
+int ObtenerTemperaturaMod() {
+  int valor = 0;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;  // Crear objeto HTTP
+
+    // URL del archivo PHP en el servidor que procesa la solicitud GET
+    String url = "http://aires-acondicionados.000webhostapp.com/ExtraerTempMod.php";
 
     http.begin(url);
 
