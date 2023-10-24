@@ -26,7 +26,7 @@ IRsendRaw mySender;
 //valor booleano para evitar envio de senales dobles
 bool est=0;
 //controlador para enviar solo una senal de temperatura
-int estTem=0;
+bool estTemp=0;
 
 
 
@@ -65,33 +65,6 @@ void loop() {
   Serial.println(temperaturaMod);
   Serial.print("Valor extraído: ");
   Serial.println(valorExtraido);
-
-
-
-//comparacion de la temperaturas real y la extraida de la base de datos
-   if (temperatura < temperaturaMod && est==1){
-    Serial.println("Subiendo temperatura");
-        digitalWrite(volS, HIGH);  
-    digitalWrite(volB, LOW); 
-    estTem=1;
-   }else if (temperatura > temperaturaMod && est==1){
-    Serial.println("Bajando temperatura");
-    digitalWrite(volS, LOW);  
-    digitalWrite(volB, HIGH); 
-    estTem=2;
-   }else if (temperatura = temperaturaMod && est==1){
-    Serial.println("Temperatura sincronizada");
-    digitalWrite(volS, HIGH);  
-    digitalWrite(volB, HIGH);
-    estTem=0;
-
-   }else{
-    digitalWrite(volS, LOW);  
-    digitalWrite(volB, LOW);    
-   }
-  
-
-
 
 
  
@@ -195,6 +168,21 @@ void loop() {
       mySender.send(rawData,RAW_DATA_LEN,36);//Pass the buffer,length, optionally frequency
       est=0;
   }
+
+
+
+  //comparacion de la temperaturas real y la extraida de la base de datos
+   if (temperatura < temperaturaMod && est==1){
+    Serial.println("Subiendo temperatura");
+    Serial.println("Enviando senal ++");
+   }else if (temperatura > temperaturaMod && est==1 ){
+    Serial.println("Bajando temperatura");
+    Serial.println("Enviando senal --");
+   }else if (temperatura = temperaturaMod && est==1){
+    Serial.println("Temperatura sincronizada");
+    Serial.println("No se envia senal");
+   }
+
 
   delay(2000);
 }
